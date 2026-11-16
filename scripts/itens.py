@@ -11,6 +11,9 @@ CORES_ITENS = {
 }
 
 
+from scripts.sprites import carregar_sprite
+
+
 class Item:
     """Itens coletaveis do jogo."""
 
@@ -22,6 +25,11 @@ class Item:
 
     def desenhar(self, tela):
         if self.coletado:
+            return
+
+        sprite = carregar_sprite(self.tipo, self.rect.width + 8, self.rect.height + 8)
+        if sprite:
+            tela.blit(sprite, (self.rect.x - 4, self.rect.y - 4))
             return
 
         if self.tipo == "madeira":

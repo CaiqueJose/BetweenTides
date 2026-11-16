@@ -1,4 +1,5 @@
 import pygame
+from scripts.sprites import carregar_sprite
 
 
 class Obstaculo:
@@ -21,6 +22,12 @@ class Obstaculo:
             self.cor = cores.get(tipo, (100, 100, 100))
 
     def desenhar(self, tela):
+        nome_sprite = "pedra_obs" if self.tipo == "pedra" else self.tipo
+        sprite = carregar_sprite(nome_sprite, self.rect.width, self.rect.height)
+        if sprite:
+            tela.blit(sprite, self.rect)
+            return
+
         if self.tipo == "arvore":
             # Tronco
             tronco_w = min(14, self.rect.width // 3)

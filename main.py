@@ -4,9 +4,10 @@ from scripts.interfaces import (
     GerenciadorMensagens, desenhar_hud, desenhar_menu,
     desenhar_vitoria, desenhar_game_over, desenhar_construcao,
     desenhar_transicao, desenhar_selecao_personagens,
-    CATEGORIAS_GALERIA,
+    desenhar_input_nome, CATEGORIAS_GALERIA,
 )
 from scripts.cenas import criar_cena
+from scripts.ranking import registrar_pontuacao
 
 # ============================================
 # CONFIGURACOES
@@ -19,6 +20,7 @@ TITULO = "Between Tides"
 
 # Estados do jogo
 MENU = "MENU"
+NOME_INPUT = "NOME_INPUT"
 TRANSICAO = "TRANSICAO"
 JOGANDO = "JOGANDO"
 GAME_OVER = "GAME_OVER"
@@ -36,6 +38,9 @@ NOMES_NIVEIS = {
     3: "Caverna",
     4: "Montanha",
     5: "Costa",
+    6: "Alto-Mar (Predadores)",
+    7: "A Grande Tempestade",
+    8: "O Leviata das Mares",
 }
 
 CONSTRUCAO_DURACAO = 180   # 3 segundos
@@ -63,6 +68,10 @@ cena = None
 cenas_ativas = {}
 construcao_timer = 0
 transicao_timer = 0
+recorde_registrado = False
+nome_jogador = "Naufrago"
+nome_jogador_input = ""
+cursor_timer = 0
 
 # Variaveis da galeria de personagens
 codigo_buffer = ""
@@ -115,13 +124,9 @@ while rodando:
 
             if estado == MENU:
                 if evento.key == pygame.K_RETURN:
-                    nivel_atual = 1
-                    inventario = Inventario()
-                    inventario_backup = Inventario()
-                    cenas_ativas.clear()
-                    iniciar_nivel(nivel_atual)
-                    estado = TRANSICAO
-                    transicao_timer = 0
+                    nome_jogador_input = ""
+                    cursor_timer = 0
+                    estado = NOME_INPUT
                 elif evento.key == pygame.K_ESCAPE:
                     rodando = False
                 else:
@@ -129,7 +134,6 @@ while rodando:
                     nome_tecla = pygame.key.name(evento.key).upper()
                     if len(nome_tecla) == 1 and nome_tecla.isalpha():
                         codigo_buffer += nome_tecla
-                        # Manter apenas os ultimos N caracteres
                         codigo_buffer = codigo_buffer[-len(CODIGO_SECRETO):]
                         if codigo_buffer == CODIGO_SECRETO:
                             codigo_buffer = ""
@@ -137,6 +141,30 @@ while rodando:
                             galeria_sub = 0
                             galeria_anim = 0
                             estado = GALERIA
+
+            elif estado == NOME_INPUT:
+                if evento.key == pygame.K_RETURN:
+                    nome_final = nome_jogador_input.strip()
+                    if not nome_final:
+                        nome_final = "Naufrago"
+                    nome_jogador = nome_final
+                    nivel_atual = 1
+                    inventario = Inventario()
+                    inventario_backup = Inventario()
+                    cenas_ativas.clear()
+                    iniciar_nivel(nivel_atual)
+                    recorde_registrado = False
+                    estado = TRANSICAO
+                    transicao_timer = 0
+                elif evento.key == pygame.K_ESCAPE:
+                    estado = MENU
+                elif evento.key == pygame.K_BACKSPACE:
+                    nome_jogador_input = nome_jogador_input[:-1]
+                else:
+                    if len(nome_jogador_input) < 14:
+                        char = evento.unicode
+                        if char and char.isprintable() and char not in "\r\n\t":
+                            nome_jogador_input += char
 
             elif estado == GALERIA:
                 if evento.key == pygame.K_ESCAPE:
@@ -178,6 +206,7 @@ while rodando:
                     cenas_ativas.clear()
                     mensagens.mensagens.clear()
                     cena = None
+                    recorde_registrado = False
                     estado = MENU
                 elif evento.key == pygame.K_ESCAPE:
                     rodando = False
@@ -186,6 +215,10 @@ while rodando:
 
     if estado == MENU:
         desenhar_menu(tela)
+
+    elif estado == NOME_INPUT:
+        cursor_timer += 1
+        desenhar_input_nome(tela, nome_jogador_input, cursor_timer)
 
     elif estado == TRANSICAO:
         desenhar_transicao(tela, nivel_atual, NOMES_NIVEIS.get(nivel_atual, ""))
@@ -222,9 +255,17 @@ while rodando:
                 else:
                     if nivel_atual < 5:
                         nivel_atual += 1
-                    else:
+                    elif nivel_atual == 5:
                         estado = CONSTRUINDO
                         construcao_timer = 0
+                        continue
+                    elif nivel_atual < 8:
+                        nivel_atual += 1
+                    else:
+                        estado = VITORIA
+                        if not recorde_registrado:
+                            registrar_pontuacao(inventario.pontuacao, nome=nome_jogador)
+                            recorde_registrado = True
                         continue
                 
                 iniciar_nivel(nivel_atual, vida_atual, indo_frente=True)
@@ -234,7 +275,7 @@ while rodando:
             # Voltar de nivel
             if cena.voltou:
                 vida_atual = cena.jogador.vida
-                if nivel_atual > 1 and nivel_atual != 1.5:
+                if nivel_atual > 1 and nivel_atual != 1.5 and nivel_atual != 6:
                     nivel_atual -= 1
                     iniciar_nivel(nivel_atual, vida_atual, indo_frente=False)
                     estado = TRANSICAO
@@ -248,7 +289,11 @@ while rodando:
         desenhar_construcao(tela, progresso)
         construcao_timer += 1
         if construcao_timer >= CONSTRUCAO_DURACAO:
-            estado = VITORIA
+            nivel_atual = 6
+            vida_atual = cena.jogador.vida if (cena and cena.jogador) else 100
+            iniciar_nivel(nivel_atual, vida_atual, indo_frente=True)
+            estado = TRANSICAO
+            transicao_timer = 0
 
     elif estado == VITORIA:
         desenhar_vitoria(tela, inventario.pontuacao)
