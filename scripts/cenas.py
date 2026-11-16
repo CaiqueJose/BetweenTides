@@ -66,6 +66,9 @@ class Cena:
 
             inimigo.atualizar(self.jogador.rect, self.obstaculos)
             if self.jogador.rect.colliderect(inimigo.rect):
+                # Inimigo atordoado fica inofensivo
+                if getattr(inimigo, "tempo_atordoado", 0) > 0:
+                    continue
                 vida_antes = self.jogador.vida
                 self.jogador.receber_dano(inimigo.dano)
                 if self.jogador.vida < vida_antes:

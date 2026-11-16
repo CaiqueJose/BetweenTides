@@ -244,11 +244,11 @@ def desenhar_vitoria(tela, pontuacao=0, recordes=None, posicao_jogador=None):
         if recordes and idx < len(recordes):
             item = recordes[idx]
             nome = item.get("nome", "Naufrago")
-            pts = item.get("pontos", 0)
+            pts = str(item.get("pontos", 0))
             eh_atual = item.get("atual", False)
         else:
             nome = "---"
-            pts = 0
+            pts = "---"
             eh_atual = False
 
         if eh_atual:
@@ -956,10 +956,10 @@ def desenhar_selecao_personagens(tela, categoria_idx, sub_idx, anim_timer):
 
             if idx < len(recs):
                 nome = recs[idx].get("nome", "---")
-                pts = recs[idx].get("pontos", 0)
+                pts = str(recs[idx].get("pontos", 0))
             else:
                 nome = "---"
-                pts = 0
+                pts = "---"
 
             cor_pos = cores_pos.get(idx + 1, (160, 175, 195))
             tela.blit(fm.render(f"#{idx + 1}", True, cor_pos), (row_rect.x + 15, row_rect.y + 8))

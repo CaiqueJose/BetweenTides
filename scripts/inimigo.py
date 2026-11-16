@@ -20,16 +20,38 @@ class Inimigo:
         self.eixo_patrulha = eixo_patrulha
         self.direcao_olhar = "baixo" if eixo_patrulha == "y" else "direita"
         self.anim_passo = 0.0
+        self.eh_chefe = False
+        self.tempo_atordoado = 0
         # Posicao fracionaria para movimento suave
         self.float_x = float(x)
         self.float_y = float(y)
 
     def receber_dano(self, quantidade):
         self.vida -= quantidade
+        # Atordoamento para inimigos que nao sao chefes
+        if not self.eh_chefe:
+            self.tempo_atordoado = 45  # ~0.75 segundo de atordoamento
         if self.vida <= 0:
             self.morto = True
 
+    def desenhar_efeito_atordoado(self, tela):
+        """Desenha estrelas giratorias amarelas quando atordoado."""
+        if not self.eh_chefe and self.tempo_atordoado > 0:
+            cx, cy = self.rect.centerx, self.rect.top - 8
+            ang_base = (45 - self.tempo_atordoado) * 0.25
+            for i in range(3):
+                ang = ang_base + i * (2 * math.pi / 3)
+                sx = cx + int(math.cos(ang) * 12)
+                sy = cy + int(math.sin(ang) * 5)
+                pygame.draw.line(tela, (255, 230, 50), (sx - 3, sy), (sx + 3, sy), 2)
+                pygame.draw.line(tela, (255, 230, 50), (sx, sy - 3), (sx, sy + 3), 2)
+                pygame.draw.circle(tela, (255, 255, 255), (sx, sy), 1)
+
     def atualizar(self, jogador_rect, obstaculos=None):
+        if not self.eh_chefe and self.tempo_atordoado > 0:
+            self.tempo_atordoado -= 1
+            return
+
         if obstaculos is None:
             obstaculos = []
 
@@ -182,6 +204,9 @@ class Inimigo:
         rect_rot = surf_rot.get_rect(center=(cx, cy))
         tela.blit(surf_rot, rect_rot)
 
+        # Efeito de atordoamento
+        self.desenhar_efeito_atordoado(tela)
+
         # Barra de vida se ferido
         if self.vida < self.vida_max:
             bx, by = self.rect.x, self.rect.y - 10
@@ -259,6 +284,8 @@ class Tubarao(Inimigo):
             pct = max(0.0, self.vida / self.vida_max)
             pygame.draw.rect(tela, (220, 40, 40), (bx, by, int(42 * pct), 5))
 
+        self.desenhar_efeito_atordoado(tela)
+
 
 class EspectroTempestade(Inimigo):
     """Entidade eletrica das tempestades que flutua pelo conves."""
@@ -309,6 +336,8 @@ class EspectroTempestade(Inimigo):
             pct = max(0.0, self.vida / self.vida_max)
             pygame.draw.rect(tela, (0, 220, 220), (bx, by, int(32 * pct), 4))
 
+        self.desenhar_efeito_atordoado(tela)
+
 
 class TentaculoLeviata(Inimigo):
     """Tentaculo colossal do Leviata que emerge e ataca o conves da jangada."""
@@ -323,6 +352,9 @@ class TentaculoLeviata(Inimigo):
         self.base_y = y
 
     def atualizar(self, jogador_rect, obstaculos=None):
+        if self.tempo_atordoado > 0:
+            self.tempo_atordoado -= 1
+            return
         self.anim += 0.08
         # O tentaculo oscila levemente para frente e para tras
         self.rect.y = int(self.base_y + math.sin(self.anim) * 8)
@@ -373,6 +405,8 @@ class TentaculoLeviata(Inimigo):
         pygame.draw.rect(tela, cor_hp, (bx, by, int(46 * pct), 6))
         pygame.draw.rect(tela, (200, 200, 200), (bx, by, 46, 6), 1)
 
+        self.desenhar_efeito_atordoado(tela)
+
 
 class LeviataChefe(Inimigo):
     """O Boss final: O lendario Leviata das Mares."""
@@ -383,6 +417,7 @@ class LeviataChefe(Inimigo):
         self.vida = 160
         self.vida_max = 160
         self.tipo = "leviata"
+        self.eh_chefe = True
         self.anim = 0.0
         self.vulneravel = False
         self.timer_ataque = 0

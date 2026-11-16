@@ -3,33 +3,39 @@ import os
 
 ARQUIVO_RECORDES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "recordes.json")
 
-RECORDES_PADRAO = [
-    {"nome": "Lenda dos Mares", "pontos": 1200},
-    {"nome": "Navegador Mestre", "pontos": 900},
-    {"nome": "Lobo do Mar", "pontos": 700},
-    {"nome": "Explorador Naval", "pontos": 500},
-    {"nome": "Sobrevivente", "pontos": 300},
-]
+NOMES_GENERICOS = {
+    "Lenda dos Mares",
+    "Navegador Mestre",
+    "Lobo do Mar",
+    "Explorador Naval",
+    "Sobrevivente",
+}
+
+RECORDES_PADRAO = []
 
 _CACHE_RECORDES = None
 _ULTIMA_POSICAO = None
 
 
 def carregar_recordes():
-    """Carrega a lista de melhores pontuacoes do arquivo JSON."""
+    """Carrega a lista de melhores pontuacoes cadastradas no arquivo JSON."""
     global _CACHE_RECORDES
     if os.path.exists(ARQUIVO_RECORDES):
         try:
             with open(ARQUIVO_RECORDES, "r", encoding="utf-8") as f:
                 dados = json.load(f)
-                if isinstance(dados, list) and len(dados) > 0:
-                    _CACHE_RECORDES = dados
+                if isinstance(dados, list):
+                    # Filtrar quaisquer nomes genericos residuais
+                    dados_filtrados = [
+                        r for r in dados
+                        if isinstance(r, dict) and r.get("nome") not in NOMES_GENERICOS
+                    ]
+                    _CACHE_RECORDES = dados_filtrados
                     return _CACHE_RECORDES
         except Exception as e:
             print(f"Erro ao ler recordes: {e}")
 
-    _CACHE_RECORDES = [dict(r) for r in RECORDES_PADRAO]
-    salvar_recordes(_CACHE_RECORDES)
+    _CACHE_RECORDES = []
     return _CACHE_RECORDES
 
 
